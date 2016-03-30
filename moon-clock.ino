@@ -2,17 +2,36 @@
 #include <DS3232RTC.h>    //http://github.com/JChristensen/DS3232RTC
 #include <Time.h>         //http://www.arduino.cc/playground/Code/Time  
 #include <Wire.h>         //http://arduino.cc/en/Reference/Wire (included with Arduino IDE)
+#include <TM1637Display.h> // https://github.com/avishorp/TM1637.git
 
-byte moonPases[] = {
-  B00000001,
-  B00000011,
-  B00000111,
-  B00011111,
-  B00111111,
-  B00000001,
-  B00000001,
-  B00000001,
+const short TOTAL_PHASES = 8;
+const short bitsMoonClock[] = {
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
 };
+const short CTRL_INCREASE_MODE = 10;
+const short CTRL_INCREASE = 11;
+const short DISPLAY_DIO = 12;
+const short DISPLAY_CLK = 13;
+
+const byte moonBitsConfiguration[] = {
+  B00000000, // =0
+  B00000001, // >0 <8
+  B00001111, // =8
+  B00111111, // >8 <15
+  B11111111, // =16
+  B11111100, // >16 <23
+  B11110000, // =24
+  B11000000, // >24
+};
+
+TM1637Display display(DISPLAY_CLK, DISPLAY_DIO);
 
 void setup(void) {
   Serial.begin(9600);
@@ -22,102 +41,73 @@ void setup(void) {
   } else {
     Serial.println("RTC has set the system time");
   }
+
+  for (short index = 0; index < TOTAL_PHASES; index++) {
+    pinMode(bitsMoonClock[index], OUTPUT);
+  }
+  pinMode(CTRL_INCREASE_MODE, INPUT);
+  pinMode(CTRL_INCREASE, OUTPUT);
+  display.setBrightness(0x0f);
 }
 
 void loop(void) {
   // digitalClockDisplay();
-  getBitsConfigurationForPhase(getPhase(year(), month(), day()));
-  printPhaseToDisplay();
+  byte phaseDigits = getBitsConfigurationForPhase(getMoonPhase(year(), month(), day()));
+  printPhaseToDisplay(phaseDigits);
+  printTime(hour(), minute());
 }
 
-void printPhaseToDisplay(int digits) {
-  // utility function for digital clock display: prints preceding colon and leading 0
-  Serial.print(':');
-  if (digits < 10) {
-    Serial.print('0');
-  }
-  Serial.print(digits);
-}
-
-/**
- * calculate the current phase of the moon based on the current date algorithm adapted from Stephen R. Schmitt's
- * Lunar Phase Computation program, originally written in the Zeno programming language http://home.att.net/~srschmitt/lunarphasecalc.html
- */
-byte getPhase(int Y, int M, int D) {
-  double AG, IP;
-  byte phase;
-  long YY, MM, K1, K2, K3, JD;
-
-  // calculate julian date
-  YY = Y - floor((12 - M) / 10);
-  MM = M + 9;
-  if (MM >= 12) {
-    MM = MM - 12;
-  }
-
-  K1 = floor(365.25 * (YY + 4712));
-  K2 = floor(30.6 * MM + 0.5);
-  K3 = floor(floor((YY / 100) + 49) * 0.75) - 38;
-
-  JD = K1 + K2 + D + 59;
-  if (JD > 2299160) {
-    JD = JD - K3;
-  }
-
-  IP = normalize((JD - 2451550.1) / 29.530588853);
-  AG = IP * 29.53;
-  return getPhaseBits(AG);
-}
-
-byte getBitsConfigurationForPhase(double AG) {
-  Serial.println(AG);
-  if (AG < 1.20369) {
-    //phase = B00000000;
-    lightLeds (0, 0, 0, 0, 0, 0);
-  } else if (AG < 3.61108) {
-    //phase = B00000001;
-    lightLeds (0, 0, 0, 0, 0, I);
-  } else if (AG < 6.01846) {
-    //phase = B00000011;
-    lightLeds (0, 0, 0, 0, I, I);
-  } else if (AG < 8.42595) {
-    //phase = B00000111;
-    lightLeds (0, 0, 0, I, I, I);
-  } else if (AG < 10.83323) {
-    //phase = B00001111;
-    lightLeds (0, 0, I, I, I, I);
-  } else if (AG < 13.24062) {
-    //phase = B00011111;
-    lightLeds (0, I, I, I, I, I);
-  } else if (AG < 15.64800) {
-    //phase = B00111111;
-    lightLeds (I, I, I, I, I, I);
-  } else if (AG < 18.05539) {
-    //phase = B00111110;
-    lightLeds (I, I, I, I, I, 0);
-  } else if (AG < 20.46277) {
-    //phase = B00111100;
-    lightLeds (I, I, I, I, 0, 0);
-  } else if (AG < 22.87016) {
-    //phase = B00111000;
-    lightLeds (I, I, I, 0, 0, 0);
-  } else if (AG < 25.27754) {
-    //phase = B00110000;
-    lightLeds (I, I, 0, 0, 0, 0);
-  } else if (AG < 27.68493) {
-    //phase = B00100000;
-    lightLeds (I, 0, 0, 0, 0, 0);
-  } else {
-    //phase = 0;
-    lightLeds (0, 0, 0, 0, 0, 0);
+void printPhaseToDisplay(byte phaseDigits) {
+  for (short index = 0; index < TOTAL_PHASES; index++) {
+    digitalWrite(bitsMoonClock[index], getBitConfig(phaseDigits, index));
   }
 }
 
-double normalize(double v) {           // normalize moon calculation between 0-1
-  v = v - floor(v);
-  if (v < 0) {
-    v = v + 1;
+boolean getBitConfig(byte phaseDigits, short index) {
+  return (phaseDigits & (1 << index)) != 0;
+}
+
+void printTime(int hours, int minutes) {
+  Serial.print(String(hours) + ':' + String(minutes));
+  display.showNumberDec(hours, false, 2, 0); // 2 = length, 0 = position
+  display.showNumberDec(minutes, false, 2, 2); // 2 = length, 0 = position.
+}
+
+byte getMoonPhase(int currDay, int currMonth, int currYear) {
+  int r = currYear % 100;
+  r %= 19;
+  if (r > 9) {
+    r -= 19;
   }
-  return v;
+  r = ((r * 11) % 30) + currMonth + currDay;
+  if (currMonth < 3) {
+    r += 2;
+  }
+  int s = currYear < 2000 ? 4 : 8.3;
+  r -= s;
+  r = ((int) floor(r + 0.5) % 30);
+  return r < 0 ? r + 30 : r;
+}
+
+byte getBitsConfigurationForPhase(int moonPhase) {
+  byte bitsConfig = {};
+  if (moonPhase == 0) {
+    bitsConfig = moonBitsConfiguration[0];
+  } else if (moonPhase > 0 && moonPhase < 8) {
+    bitsConfig = moonBitsConfiguration[1];
+  } else if (moonPhase == 8) {
+    bitsConfig = moonBitsConfiguration[2];
+  } else if (moonPhase > 8 && moonPhase < 15) {
+    bitsConfig = moonBitsConfiguration[3];
+  } else if (moonPhase == 16) {
+    bitsConfig = moonBitsConfiguration[4];
+  } else if (moonPhase > 16 && moonPhase < 23) {
+    bitsConfig = moonBitsConfiguration[5];
+  } else if (moonPhase == 24) {
+    bitsConfig = moonBitsConfiguration[6];
+  } else if (moonPhase > 24) {
+    bitsConfig = moonBitsConfiguration[7];
+  }
+  return bitsConfig;
 }
 
