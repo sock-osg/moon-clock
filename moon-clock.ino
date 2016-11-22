@@ -1,8 +1,15 @@
 #include <math.h>
-#include <DS3232RTC.h>    //http://github.com/JChristensen/DS3232RTC
-#include <Time.h>         //http://www.arduino.cc/playground/Code/Time  
-#include <Wire.h>         //http://arduino.cc/en/Reference/Wire (included with Arduino IDE)
-#include <TM1637Display.h> // https://github.com/avishorp/TM1637.git
+#include <DS1307RTC.h>
+#include <Time.h>
+#include <Wire.h>
+#include <TM1637Display.h>
+
+const short CTRL_MODE = 14;
+const short CTRL_DECREASE = 15;
+const short CTRL_INCREASE = 16;
+
+const short DISPLAY_DIO = 12;
+const short DISPLAY_CLK = 13;
 
 const short TOTAL_PHASES = 8;
 const short bitsMoonClock[] = {
@@ -15,46 +22,87 @@ const short bitsMoonClock[] = {
   6,
   7,
 };
-const short CTRL_INCREASE_MODE = 10;
-const short CTRL_INCREASE = 11;
-const short DISPLAY_DIO = 12;
-const short DISPLAY_CLK = 13;
 
 const byte moonBitsConfiguration[] = {
-  B00000000, // =0
-  B00000001, // >0 <8
-  B00001111, // =8
-  B00111111, // >8 <15
-  B11111111, // =16
-  B11111100, // >16 <23
-  B11110000, // =24
-  B11000000, // >24
+  B00000000, // = 0
+  B00000001, // > 0 < 8
+  B00001111, // = 8
+  B00111111, // > 8 < 15
+  B11111111, // = 16
+  B11111100, // > 16 < 23
+  B11110000, // = 24
+  B11000000, // > 24
 };
 
+int lastDay = -1;
+int setupModeCounter = -1;
+
 TM1637Display display(DISPLAY_CLK, DISPLAY_DIO);
+tmElements_t tm;
 
 void setup(void) {
-  Serial.begin(9600);
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
-  if (timeStatus() != timeSet) {
-    Serial.println("Unable to sync with the RTC");
-  } else {
-    Serial.println("RTC has set the system time");
-  }
-
   for (short index = 0; index < TOTAL_PHASES; index++) {
     pinMode(bitsMoonClock[index], OUTPUT);
   }
-  pinMode(CTRL_INCREASE_MODE, INPUT);
-  pinMode(CTRL_INCREASE, OUTPUT);
+  pinMode(CTRL_MODE, INPUT);
+  pinMode(CTRL_DECREASE, INPUT);
+  pinMode(CTRL_INCREASE, INPUT);
   display.setBrightness(0x0f);
 }
 
 void loop(void) {
-  // digitalClockDisplay();
-  byte phaseDigits = getBitsConfigurationForPhase(getMoonPhase(year(), month(), day()));
-  printPhaseToDisplay(phaseDigits);
-  printTime(hour(), minute());
+  int statusMode = digitalRead(CTRL_MODE);
+
+  if (statusMode == HIGH) {
+    setupModeCounter += 1;
+  }
+  
+  if (setupModeCounter >= 0) {
+    int value = 0;
+    switch(setupModeCounter) {
+      case 0: // Hours
+        value = tm.Hour;
+        break;
+      case 1: // Minutes
+        value = tm.Minute;
+        break;
+      case 3: // Days
+        value = tm.Day;
+        break;
+      case 4: // Month
+        value = tm.Month;
+        break;
+      case 5: // Year
+        value = tm.Year;
+        break;
+      default:
+        setupModeCounter = -1;
+        break;
+    }
+
+    if (digitalRead(CTRL_INCREASE)) {
+      value += 1;
+    } else if (digitalRead(CTRL_DECREASE)) {
+      value -= 1;
+    }
+
+    printTime(0, value);
+    setupModeCounter++;
+  } else {
+    if (RTC.read(tm)) {
+      // Updates the moon phase when there is a day change
+      if (lastDay != tm.Day) {
+        byte phaseDigits = getBitsConfigurationForPhase(getMoonPhase(tm.Year, tm.Month, tm.Day));
+        printPhaseToDisplay(phaseDigits);
+        lastDay = tm.Day;
+      }
+
+      printTime(tm.Hour, tm.Minute);
+    } else {
+      lastDay = -1;
+      printTime(0, 0);
+    }
+  }
 }
 
 void printPhaseToDisplay(byte phaseDigits) {
@@ -68,7 +116,6 @@ boolean getBitConfig(byte phaseDigits, short index) {
 }
 
 void printTime(int hours, int minutes) {
-  Serial.print(String(hours) + ':' + String(minutes));
   display.showNumberDec(hours, false, 2, 0); // 2 = length, 0 = position
   display.showNumberDec(minutes, false, 2, 2); // 2 = length, 0 = position.
 }
