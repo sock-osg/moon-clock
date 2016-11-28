@@ -38,9 +38,16 @@ int lastDay = -1;
 int setupModeCounter = -1;
 
 TM1637Display display(DISPLAY_CLK, DISPLAY_DIO);
-tmElements_t tm;
+tmElements_t configTime;
 
 void setup(void) {
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+  if (timeStatus() != timeSet) {
+    printTime(0, 0);
+  } else {
+    printTime(configTime.Hour, configTime.Minute);
+  }
+  
   for (short index = 0; index < TOTAL_PHASES; index++) {
     pinMode(bitsMoonClock[index], OUTPUT);
   }
@@ -56,48 +63,37 @@ void loop(void) {
   if (statusMode == HIGH) {
     setupModeCounter += 1;
   }
-  
+
+  // Configuration mode
   if (setupModeCounter >= 0) {
-    int value = 0;
-    switch(setupModeCounter) {
-      case 0: // Hours
-        value = tm.Hour;
-        break;
-      case 1: // Minutes
-        value = tm.Minute;
-        break;
-      case 3: // Days
-        value = tm.Day;
-        break;
-      case 4: // Month
-        value = tm.Month;
-        break;
-      case 5: // Year
-        value = tm.Year;
-        break;
-      default:
-        setupModeCounter = -1;
-        break;
-    }
+    if (setupModeCounter == 0) {
+      // Start config mode, read and set the date into the date parts array
+      RTC.read(configTime);
+    } else if (setupModeCounter == 5) {
+      // End config mode, set config time
+      RTC.write(configTime);
+      setupModeCounter = -1;
+    } else {
+      int value = 0;
 
-    if (digitalRead(CTRL_INCREASE)) {
-      value += 1;
-    } else if (digitalRead(CTRL_DECREASE)) {
-      value -= 1;
+      if (digitalRead(CTRL_INCREASE)) {
+        value += 1;
+      } else if (digitalRead(CTRL_DECREASE)) {
+        value -= 1;
+      }
+  
+      printTime(0, value);
     }
-
-    printTime(0, value);
-    setupModeCounter++;
   } else {
-    if (RTC.read(tm)) {
+    if (RTC.read(configTime)) {
       // Updates the moon phase when there is a day change
-      if (lastDay != tm.Day) {
-        byte phaseDigits = getBitsConfigurationForPhase(getMoonPhase(tm.Year, tm.Month, tm.Day));
+      if (lastDay != configTime.Day) {
+        byte phaseDigits = getBitsConfigurationForPhase(getMoonPhase(configTime.Year, configTime.Month, configTime.Day));
         printPhaseToDisplay(phaseDigits);
-        lastDay = tm.Day;
+        lastDay = configTime.Day;
       }
 
-      printTime(tm.Hour, tm.Minute);
+      printTime(configTime.Hour, configTime.Minute);
     } else {
       lastDay = -1;
       printTime(0, 0);
@@ -134,6 +130,24 @@ byte getMoonPhase(int currDay, int currMonth, int currYear) {
   r -= s;
   r = ((int) floor(r + 0.5) % 30);
   return r < 0 ? r + 30 : r;
+}
+
+int getDaysFromMonth(int month, int year) {
+  int days = 0;
+
+  switch (month) {
+    case 2:
+      days = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) == 0 ? 29 : 28;
+      break;
+    case 4: case 6: case 9: case 11:
+      days = 30;
+      break;
+    default:
+      days = 31;
+      break;
+  }
+
+  return days;
 }
 
 byte getBitsConfigurationForPhase(int moonPhase) {
