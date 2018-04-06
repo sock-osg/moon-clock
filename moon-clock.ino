@@ -1,6 +1,8 @@
 #include <math.h>
 #include <Wire.h>
-#include <RtcDS3231.h>
+
+// I2C Config
+#define I2C_RTC_ADDR 0x68
 
 #define MOON_PIN_0        2  // rightmost light if facing clock
 #define MOON_PIN_1        3
@@ -54,7 +56,6 @@ const int digit_controllers[] = {
 int BASE_DELAY = 2;
 const int DOTS_TOGGLE = 1000;
 
-RtcDS3231<TwoWire> Rtc(Wire);
 int lastDay = 0;
 int lastMonth = 0;
 int lastYear = 0;
@@ -62,13 +63,6 @@ int dotCounter = 0;
 
 void setup(void) {
   //Serial.begin(57600);
-  Rtc.Begin();
-
-  //RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
-  //RtcDateTime compiled = RtcDateTime(2017, 12, 4, 6, 52, 0);
-
-  //Rtc.SetDateTime(compiled);
-
   pinMode(MOON_PIN_0, OUTPUT);
   pinMode(MOON_PIN_1, OUTPUT);
   pinMode(MOON_PIN_2, OUTPUT);
@@ -93,10 +87,8 @@ void setup(void) {
 }
 
 void loop(void) {
-  RtcDateTime now = Rtc.GetDateTime();
-  int currentDay = now.Day();
-  int currentMonth = now.Month();
-  int currentYear = now.Year();
+  byte second, minute, hour, dayOfWeek, currentDay, currentMonth, currentYear;
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &currentDay, &currentMonth, &currentYear);
 
   if (lastDay == 0 & lastMonth == 0 && lastYear == 0) {
     lastDay = currentDay;
@@ -109,7 +101,32 @@ void loop(void) {
   }
 
   //printDateTime(now);
-  printSegments(now.Hour(), now.Minute());
+  printSegments(hour, minute);
+}
+
+void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byte *dayOfMonth, byte *month, byte *year) {
+  Wire.beginTransmission(I2C_RTC_ADDR);
+  Wire.write(0); // set DS3231 register pointer to 00h
+  Wire.endTransmission();
+  Wire.requestFrom(I2C_RTC_ADDR, 7);
+  // request seven bytes of data from DS3231 starting from register 00h
+  *second = bcdToDec(Wire.read() & 0x7f);
+  *minute = bcdToDec(Wire.read());
+  *hour = bcdToDec(Wire.read() & 0x3f);
+  *dayOfWeek = bcdToDec(Wire.read());
+  *dayOfMonth = bcdToDec(Wire.read());
+  *month = bcdToDec(Wire.read());
+  *year = bcdToDec(Wire.read());
+}
+
+byte bcdToDec(byte val) {
+  return (val / 16*10) + (val % 16);
+}
+
+boolean rtcPresent() {
+  Wire.beginTransmission(I2C_RTC_ADDR);
+  Wire.write(0x00);
+  return !(Wire.endTransmission() != 0);
 }
 
 void printSegments(int hour, int minutes) {
