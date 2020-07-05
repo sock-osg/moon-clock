@@ -3,7 +3,8 @@
 
 #include "Arduino.h"
 
-#define DEFAULT_LONGPRESS_LEN    25
+#define DEFAULT_LONGPRESS_LEN    25  // Min nr of loops for a long press
+#define DELAY                    20  // Delay per loop in ms
 
 enum { EV_NONE = 0, EV_SHORTPRESS, EV_LONGPRESS };
 
@@ -27,4 +28,3 @@ class ButtonHandler {
 };
 
 #endif
-
