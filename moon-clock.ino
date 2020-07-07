@@ -3,6 +3,7 @@
 #include <TM1637Display.h>
 
 #include "ButtonHandler.h"
+#include "MoonController.h"
 
 #define DIO              2 // can be any digital pin
 #define CLK              3 // can be any digital pin
@@ -10,7 +11,16 @@
 #define BTN_SET          4  // Button SET
 #define BTN_INCREASE     5  // Button INCREASE
 
-#define _24_HRS_LED_PIN  6
+#define MOON_PIN_0        6  // rightmost light if facing clock
+#define MOON_PIN_1        7
+#define MOON_PIN_2        8
+#define MOON_PIN_3        9
+#define MOON_PIN_4        10
+#define MOON_PIN_5        11
+#define MOON_PIN_6        12
+#define MOON_PIN_7        13
+
+#define _24_HRS_LED_PIN  A0
 
 // Init the DS3231 using the hardware interface
 TM1637Display display(CLK, DIO);
@@ -19,6 +29,12 @@ DS3231 rtc;
 // Instantiate button objects
 ButtonHandler btn_set(BTN_SET);
 ButtonHandler btn_increase(BTN_INCREASE);
+
+int moon_pins[] = {
+    MOON_PIN_0, MOON_PIN_1, MOON_PIN_2, MOON_PIN_3, MOON_PIN_4, MOON_PIN_5, MOON_PIN_6, MOON_PIN_7
+  };
+
+MoonController moonController(moon_pins);
 
 int event_counter = 0;
 bool Century = false;
@@ -35,6 +51,8 @@ void setup() {
 
   btn_set.init();
   btn_increase.init();
+
+  moonController.init();
 }
 
 byte getHour() {
@@ -135,6 +153,8 @@ void reset_date_parts_flags() {
   bool print_year = false;
 }
 
+int previous_day = 0;
+
 void loop() {
   // handle button
   int event_btn_set = btn_set.handle();
@@ -174,33 +194,25 @@ void loop() {
     }
   } else if (event_btn_increase == EV_SHORTPRESS) {
     if (event_counter == 1) {
-      Serial.println("Setting Hours");
       int current_hour = rtc.getHour(h12, PM);
       int new_hour = current_hour < 23 ? current_hour + 1 : 0;
       rtc.setHour(new_hour);
     } else if (event_counter == 2) {
-      Serial.println("Setting Minutes");
       int current_minute = rtc.getMinute();
       int new_minute = current_minute < 59 ? current_minute + 1 : 0;
       rtc.setMinute(new_minute);
     } else if (event_counter == 3) {
-      Serial.println("Setting Day");
       int current_day = rtc.getDate();
       int new_day = current_day < 31 ? current_day + 1 : 1;
       rtc.setDate(new_day);
     } else if (event_counter == 4) {
-      Serial.println("Setting Month");
       int current_month = rtc.getMonth(Century);
-      int new_month = current_month < 11 ? current_month + 1 : 1;
+      int new_month = current_month < 12 ? current_month + 1 : 1;
       rtc.setMonth(new_month);
     } else if (event_counter == 5) {
-      Serial.println("Old year");
-      Serial.println(rtc.getYear());
       int current_year = rtc.getYear();
-      int new_year = current_year < 98 ? current_year + 1 : 0;
+      int new_year = current_year < 99 ? current_year + 1 : 0;
       rtc.setYear(new_year);
-      Serial.println("New year");
-      Serial.println(rtc.getYear());
     } else {
       Serial.println("Invalid option");
     }
@@ -212,6 +224,11 @@ void loop() {
     print_date();
   } else {
     print_current_time();
+  }
+
+  if (previous_day != rtc.getDate()) {
+    moonController.printPhase((int) rtc.getDate(), (int) rtc.getMonth(Century), (int) (2000 + rtc.getYear()));
+    previous_day = rtc.getDate();
   }
 
   delay(DELAY);

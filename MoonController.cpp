@@ -23,79 +23,81 @@ void MoonController::init() {
 
 void MoonController::printPhase(int currDay, int currMonth, int currYear) {
   int moonPhase = getMoonPhase(currDay, currMonth, currYear);
+  Serial.print("Moon phase: ");
+  Serial.println(moonPhase);
 
   if (moonPhase == 0) {
-    digitalWrite(MOON_PIN_0, LOW);
-    digitalWrite(MOON_PIN_1, LOW);
-    digitalWrite(MOON_PIN_2, LOW);
-    digitalWrite(MOON_PIN_3, LOW);
-    digitalWrite(MOON_PIN_4, LOW);
-    digitalWrite(MOON_PIN_5, LOW);
-    digitalWrite(MOON_PIN_6, LOW);
-    digitalWrite(MOON_PIN_7, LOW);
+    digitalWrite(pinOuts[0], LOW);
+    digitalWrite(pinOuts[1], LOW);
+    digitalWrite(pinOuts[2], LOW);
+    digitalWrite(pinOuts[3], LOW);
+    digitalWrite(pinOuts[4], LOW);
+    digitalWrite(pinOuts[5], LOW);
+    digitalWrite(pinOuts[6], LOW);
+    digitalWrite(pinOuts[7], LOW);
   } else if (moonPhase > 0 && moonPhase < 8) {
-    digitalWrite(MOON_PIN_0, HIGH);
-    digitalWrite(MOON_PIN_1, HIGH);
-    digitalWrite(MOON_PIN_2, LOW);
-    digitalWrite(MOON_PIN_3, LOW);
-    digitalWrite(MOON_PIN_4, LOW);
-    digitalWrite(MOON_PIN_5, LOW);
-    digitalWrite(MOON_PIN_6, LOW);
-    digitalWrite(MOON_PIN_7, LOW);
+    digitalWrite(pinOuts[0], HIGH);
+    digitalWrite(pinOuts[1], HIGH);
+    digitalWrite(pinOuts[2], LOW);
+    digitalWrite(pinOuts[3], LOW);
+    digitalWrite(pinOuts[4], LOW);
+    digitalWrite(pinOuts[5], LOW);
+    digitalWrite(pinOuts[6], LOW);
+    digitalWrite(pinOuts[7], LOW);
   } else if (moonPhase == 8) {
-    digitalWrite(MOON_PIN_0, HIGH);
-    digitalWrite(MOON_PIN_1, HIGH);
-    digitalWrite(MOON_PIN_2, HIGH);
-    digitalWrite(MOON_PIN_3, HIGH);
-    digitalWrite(MOON_PIN_4, LOW);
-    digitalWrite(MOON_PIN_5, LOW);
-    digitalWrite(MOON_PIN_6, LOW);
-    digitalWrite(MOON_PIN_7, LOW);
-  } else if (moonPhase > 8 && moonPhase < 15) {
-    digitalWrite(MOON_PIN_0, HIGH);
-    digitalWrite(MOON_PIN_1, HIGH);
-    digitalWrite(MOON_PIN_2, HIGH);
-    digitalWrite(MOON_PIN_3, HIGH);
-    digitalWrite(MOON_PIN_4, HIGH);
-    digitalWrite(MOON_PIN_5, HIGH);
-    digitalWrite(MOON_PIN_6, LOW);
-    digitalWrite(MOON_PIN_7, LOW);
+    digitalWrite(pinOuts[0], HIGH);
+    digitalWrite(pinOuts[1], HIGH);
+    digitalWrite(pinOuts[2], HIGH);
+    digitalWrite(pinOuts[3], HIGH);
+    digitalWrite(pinOuts[4], LOW);
+    digitalWrite(pinOuts[5], LOW);
+    digitalWrite(pinOuts[6], LOW);
+    digitalWrite(pinOuts[7], LOW);
+  } else if (moonPhase > 8 && moonPhase <= 15) {
+    digitalWrite(pinOuts[0], HIGH);
+    digitalWrite(pinOuts[1], HIGH);
+    digitalWrite(pinOuts[2], HIGH);
+    digitalWrite(pinOuts[3], HIGH);
+    digitalWrite(pinOuts[4], HIGH);
+    digitalWrite(pinOuts[5], HIGH);
+    digitalWrite(pinOuts[6], LOW);
+    digitalWrite(pinOuts[7], LOW);
   } else if (moonPhase == 16) {
-    digitalWrite(MOON_PIN_0, HIGH);
-    digitalWrite(MOON_PIN_1, HIGH);
-    digitalWrite(MOON_PIN_2, HIGH);
-    digitalWrite(MOON_PIN_3, HIGH);
-    digitalWrite(MOON_PIN_4, HIGH);
-    digitalWrite(MOON_PIN_5, HIGH);
-    digitalWrite(MOON_PIN_6, HIGH);
-    digitalWrite(MOON_PIN_7, HIGH);
+    digitalWrite(pinOuts[0], HIGH);
+    digitalWrite(pinOuts[1], HIGH);
+    digitalWrite(pinOuts[2], HIGH);
+    digitalWrite(pinOuts[3], HIGH);
+    digitalWrite(pinOuts[4], HIGH);
+    digitalWrite(pinOuts[5], HIGH);
+    digitalWrite(pinOuts[6], HIGH);
+    digitalWrite(pinOuts[7], HIGH);
   } else if (moonPhase > 16 && moonPhase < 23) {
-    digitalWrite(MOON_PIN_0, LOW);
-    digitalWrite(MOON_PIN_1, LOW);
-    digitalWrite(MOON_PIN_2, HIGH);
-    digitalWrite(MOON_PIN_3, HIGH);
-    digitalWrite(MOON_PIN_4, HIGH);
-    digitalWrite(MOON_PIN_5, HIGH);
-    digitalWrite(MOON_PIN_6, HIGH);
-    digitalWrite(MOON_PIN_7, HIGH);
+    digitalWrite(pinOuts[0], LOW);
+    digitalWrite(pinOuts[1], LOW);
+    digitalWrite(pinOuts[2], HIGH);
+    digitalWrite(pinOuts[3], HIGH);
+    digitalWrite(pinOuts[4], HIGH);
+    digitalWrite(pinOuts[5], HIGH);
+    digitalWrite(pinOuts[6], HIGH);
+    digitalWrite(pinOuts[7], HIGH);
   } else if (moonPhase == 24) {
-    digitalWrite(MOON_PIN_0, LOW);
-    digitalWrite(MOON_PIN_1, LOW);
-    digitalWrite(MOON_PIN_2, LOW);
-    digitalWrite(MOON_PIN_3, LOW);
-    digitalWrite(MOON_PIN_4, HIGH);
-    digitalWrite(MOON_PIN_5, HIGH);
-    digitalWrite(MOON_PIN_6, HIGH);
-    digitalWrite(MOON_PIN_7, HIGH);
+    digitalWrite(pinOuts[0], LOW);
+    digitalWrite(pinOuts[1], LOW);
+    digitalWrite(pinOuts[2], LOW);
+    digitalWrite(pinOuts[3], LOW);
+    digitalWrite(pinOuts[4], HIGH);
+    digitalWrite(pinOuts[5], HIGH);
+    digitalWrite(pinOuts[6], HIGH);
+    digitalWrite(pinOuts[7], HIGH);
   } else if (moonPhase > 24) {
-    digitalWrite(MOON_PIN_0, LOW);
-    digitalWrite(MOON_PIN_1, LOW);
-    digitalWrite(MOON_PIN_2, LOW);
-    digitalWrite(MOON_PIN_3, LOW);
-    digitalWrite(MOON_PIN_4, LOW);
-    digitalWrite(MOON_PIN_5, LOW);
-    digitalWrite(MOON_PIN_6, HIGH);
-    digitalWrite(MOON_PIN_7, HIGH);
+    digitalWrite(pinOuts[0], LOW);
+    digitalWrite(pinOuts[1], LOW);
+    digitalWrite(pinOuts[2], LOW);
+    digitalWrite(pinOuts[3], LOW);
+    digitalWrite(pinOuts[4], LOW);
+    digitalWrite(pinOuts[5], LOW);
+    digitalWrite(pinOuts[6], HIGH);
+    digitalWrite(pinOuts[7], HIGH);
   }
 }
 
@@ -114,4 +116,3 @@ int MoonController::getMoonPhase(int currDay, int currMonth, int currYear) {
   r = ((int) floor(r + 0.5) % 30);
   return r < 0 ? r + 30 : r;
 }
-
