@@ -154,6 +154,8 @@ void reset_date_parts_flags() {
 }
 
 int previous_day = 0;
+int previous_month = 0;
+int previous_year = 0;
 
 void loop() {
   // handle button
@@ -226,9 +228,16 @@ void loop() {
     print_current_time();
   }
 
-  if (previous_day != rtc.getDate()) {
-    moonController.printPhase((int) rtc.getDate(), (int) rtc.getMonth(Century), (int) (2000 + rtc.getYear()));
-    previous_day = rtc.getDate();
+  int current_day = rtc.getDate();
+  int current_month = rtc.getMonth(Century);
+  int current_year = 2000 + rtc.getYear();
+  if (previous_day != current_day
+      || previous_month != current_month
+      || previous_year != current_year) {
+    moonController.printPhase(current_day, current_month, current_year);
+    previous_day = current_day;
+    previous_month = current_month;
+    previous_year = current_year;
   }
 
   delay(DELAY);
