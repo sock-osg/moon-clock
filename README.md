@@ -10,4 +10,8 @@ Moon clock with Digital display
 
 ## References
 
+Moon Clock
+* https://www.instructables.com/id/Lunar-Phase-Clock/
 
+Moon Phase Algorithms
+* http://www.ben-daglish.net/moon.shtml
