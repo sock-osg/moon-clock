@@ -40,7 +40,7 @@ int event_counter = 0;
 bool Century = false;
 bool h12 = false;
 bool PM;
-bool timer_setup;
+bool timer_setup = false;
 
 void setup() {
   Serial.begin(9600);
@@ -53,6 +53,44 @@ void setup() {
   btn_increase.init();
 
   moonController.init();
+
+  Serial.print("CURRENT date and time=");
+  Serial.print(rtc.getDate());
+  Serial.print("/");
+  Serial.print(rtc.getMonth(Century));
+  Serial.print("/");
+  Serial.print(rtc.getYear());
+  Serial.print(" ");
+  Serial.print(rtc.getHour(h12, PM));
+  Serial.print(":");
+  Serial.print(rtc.getMinute());
+  Serial.print(":");
+  Serial.print(rtc.getSecond());
+  Serial.println("---");
+
+  if (rtc.getMonth(Century) >= 12) {
+    Serial.println("Updating to 1/1/2000 00:00");
+    rtc.setHour(0);
+    rtc.setMinute(0);
+    rtc.setSecond(0);
+    rtc.setDate(1);
+    rtc.setMonth(1);
+    rtc.setYear(0);
+
+    Serial.print("NEW date and time=");
+    Serial.print(rtc.getDate());
+    Serial.print("/");
+    Serial.print(rtc.getMonth(Century));
+    Serial.print("/");
+    Serial.print(rtc.getYear());
+    Serial.print(" ");
+    Serial.print(rtc.getHour(h12, PM));
+    Serial.print(":");
+    Serial.print(rtc.getMinute());
+    Serial.print(":");
+    Serial.print(rtc.getSecond());
+    Serial.println("---");
+  }
 }
 
 byte getHour() {
@@ -219,6 +257,16 @@ void loop() {
       Serial.println("Invalid option");
     }
   }
+
+/*
+  Serial.print("Event counter: ");
+  Serial.print(event_counter);
+  Serial.print(", Seconds: ");
+  Serial.print(rtc.getSecond());
+  Serial.print(", Timer setup: ");
+  Serial.print(timer_setup);
+  Serial.println(" ---");
+*/
 
   if (event_counter == 0 && rtc.getSecond() > 57 && !timer_setup) {
     print_temperature();
